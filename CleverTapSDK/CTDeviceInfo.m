@@ -144,35 +144,7 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
 }
 
 + (NSString *)getIDFA {
-    
-    NSString *identifier;
-    
-    @try {
-        Class asim = NSClassFromString(@"ASIdentifierManager");
-        if (!asim) {
-            return nil;
-        }
-        SEL smSelector = NSSelectorFromString(@"sharedManager");
-        id sm = ((id (*)(id, SEL)) [asim methodForSelector:smSelector])(asim, smSelector);
-        
-        SEL ateSelector = NSSelectorFromString(@"isAdvertisingTrackingEnabled");
-        
-        advertisingTrackingEnabled = ((BOOL(*)(id, SEL)) [sm methodForSelector:ateSelector])(sm, ateSelector);
-        
-        SEL aiSelector = NSSelectorFromString(@"advertisingIdentifier");
-        NSUUID *uuid = ((NSUUID *(*)(id, SEL)) [sm methodForSelector:aiSelector])(sm, aiSelector);
-        identifier = [uuid UUIDString];
-        
-        if (identifier && ![identifier isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
-            identifier = [[identifier stringByReplacingOccurrencesOfString:@"-" withString:@""] lowercaseString];
-        } else {
-            identifier = nil;
-        }
-    } @catch (NSException *e) {
-        CleverTapLogStaticInternal(@"Error checking availability of IDFA: %@", e.debugDescription);
-    }
-    
-    return identifier;
+    return nil;
 }
 
 + (NSString*)getPlatformName {
@@ -188,7 +160,7 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
 - (void)initDeviceID:(NSString *)cleverTapID {
     @try {
         [deviceIDLock lock];
-        
+
         _idfa = _idfa ? _idfa : [[self class] getIDFA];
         if (self.config.useIDFA && _idfa && [_idfa length] > 5) {
             self.advertisingIdentitier = _idfa;
@@ -197,16 +169,16 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
         if (_idfv && [_idfv length] > 5) {
             self.vendorIdentifier = _idfv;
         }
-        
+
         // set the fallbackdeviceId on launch, in the event this instance had a fallbackid on last close
         self.fallbackDeviceId = [self getStoredFallbackDeviceID];
-        
+
         if (!self.config.useCustomCleverTapId && cleverTapID != nil) {
             NSString *errorString = [NSString stringWithFormat:@"%@: CleverTapUseCustomId has not been specified in the Info.plist/instance configuration. Custom CleverTap ID: %@ will not be used.", self, cleverTapID];
             CleverTapLogInfo(self.config.logLevel, @"%@", errorString);
             [self recordDeviceError:errorString];
         }
-        
+
         // Is the device ID already present?
         NSString *existingDeviceID = [self getDeviceID];
         if (existingDeviceID) {
@@ -218,12 +190,12 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
             self.deviceId = existingDeviceID;
             return;
         }
-        
+
         if (self.config.useCustomCleverTapId) {
             [self forceUpdateCustomDeviceID:cleverTapID];
             return;
         }
-        
+
         if (self.advertisingIdentitier) {
             [self forceUpdateDeviceID:[NSString stringWithFormat:@"-g%@", self.advertisingIdentitier]];
             return;
@@ -232,10 +204,10 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
             [self forceUpdateDeviceID:[NSString stringWithFormat:@"-v%@", self.vendorIdentifier]];
             return;
         }
-        
+
         // Nothing? Generate one
         [self forceNewDeviceID];
-        
+
     } @finally {
         [deviceIDLock unlock];
     }
@@ -261,16 +233,16 @@ static void CleverTapReachabilityHandler(SCNetworkReachabilityRef target, SCNetw
                 && [[deviceID stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] isEqualToString:@""]) {
                 deviceID = nil;
             }
-            
+
             if (deviceID) {
                 [self forceUpdateDeviceID:deviceID];
             }
         }
-        
+
         if (!deviceID) {
             deviceID = [CTPreferences getStringForKey:[self deviceIdStorageKey] withResetValue:nil];
         }
-        
+
         if (deviceID
             && [[deviceID stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] isEqualToString:@""]) {
             deviceID = nil;

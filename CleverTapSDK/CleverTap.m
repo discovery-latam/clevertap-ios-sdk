@@ -330,11 +330,11 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         if (sharedApplication == nil) {
             return;
         }
-        
+
         __strong id appDelegate = [sharedApplication delegate];
         Class cls = [sharedApplication.delegate class];
         SEL sel;
-        
+
         // Token Handling
         sel = NSSelectorFromString(@"application:didFailToRegisterForRemoteNotificationsWithError:");
         if (!class_getInstanceMethod(cls, sel)) {
@@ -352,7 +352,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [invocation invokeWithTarget:obj];
             } error:nil];
         }
-        
+
         sel = NSSelectorFromString(@"application:didRegisterForRemoteNotificationsWithDeviceToken:");
         if (!class_getInstanceMethod(cls, sel)) {
             SEL newSel = @selector(ct_application:didRegisterForRemoteNotificationsWithDeviceToken:);
@@ -369,7 +369,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [invocation invokeWithTarget:obj];
             } error:nil];
         }
-        
+
         // Notification Handling
 #if !defined(CLEVERTAP_TVOS)
         if (@available(iOS 10.0, *)) {
@@ -416,7 +416,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             class_addMethod(cls, sel, imp, methodTypeEncoding);
         }
 #endif
-        
+
         // URL handling
         if (class_getInstanceMethod(cls, NSSelectorFromString(@"application:openURL:sourceApplication:annotation:"))) {
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_9_0
@@ -552,9 +552,9 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             }
             return nil;
         }
-        
+
         _defaultInstanceConfig = [[CleverTapInstanceConfig alloc] initWithAccountId:_plistInfo.accountId accountToken:_plistInfo.accountToken accountRegion:_plistInfo.accountRegion isDefaultInstance:YES];
-        
+
         if (_defaultInstanceConfig == nil) {
             return nil;
         }
@@ -613,10 +613,10 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             initialProfileValues[CLTAP_SYS_TZ] = _deviceInfo.timeZone;
         }
         _localDataStore = [[CTLocalDataStore alloc] initWithConfig:_config andProfileValues:initialProfileValues];
-        
+
         _serialQueue = dispatch_queue_create([_config.queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);
         dispatch_queue_set_specific(_serialQueue, kQueueKey, (__bridge void *)self, NULL);
-        
+
         _lastAppLaunchedTime = [self eventGetLastTime:@"App Launched"];
         self.pendingValidationResults = [NSMutableArray array];
         self.userSetLocation = emptyLocation;
@@ -637,7 +637,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         if (now - initialAppEnteredForegroundTime > 5) {
             _config.isCreatedPostAppLaunched = YES;
         }
-        
+
 #if !CLEVERTAP_NO_AB_SUPPORT
         // Default (flag is set in the config init) or first non-default instance gets the ABTestController
         if (!_config.enableABTesting) {
@@ -646,12 +646,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         [self _initABTesting];
 #endif
         [self _initFeatureFlags];
-        
+
         [self _initProductConfig];
-        
+
         [self notifyUserProfileInitialized];
     }
-    
+
     return self;
 }
 
@@ -661,16 +661,16 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         NSString *deviceID = self.deviceInfo.deviceId;
         if (!deviceID) return;
         CleverTapLogInternal(self.config.logLevel, @"%@: Notifying user profile initialized with ID %@", self, deviceID);
-        
+
         id <CleverTapSyncDelegate> apiDelegate = [self syncDelegate];
-        
+
         if (apiDelegate && [apiDelegate respondsToSelector:@selector(profileDidInitialize:)]) {
             [apiDelegate profileDidInitialize:deviceID];
         }
         if (apiDelegate && [apiDelegate respondsToSelector:@selector(profileDidInitialize:forAccountId:)]) {
             [apiDelegate profileDidInitialize:deviceID forAccountId:self.config.accountId];
         }
-        
+
         [[NSNotificationCenter defaultCenter] postNotificationName:CleverTapProfileDidInitializeNotification object:nil userInfo:@{@"CleverTapID" : deviceID, @"CleverTapAccountID":self.config.accountId}];
     });
 }
@@ -757,12 +757,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         [sc setHTTPAdditionalHeaders:@{
             @"Content-Type" : @"application/json; charset=utf-8"
         }];
-        
+
         sc.timeoutIntervalForRequest = CLTAP_REQUEST_TIME_OUT_INTERVAL;
         sc.timeoutIntervalForResource = CLTAP_REQUEST_TIME_OUT_INTERVAL;
         [sc setHTTPShouldSetCookies:NO];
         [sc setRequestCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
-        
+
 #if CLEVERTAP_SSL_PINNING
         _sslPinningEnabled = YES;
         self.urlSessionDelegate = [[CTPinnedNSURLSessionDelegate alloc] initWithConfig:self.config];
@@ -1011,27 +1011,27 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 - (NSDictionary *)batchHeader {
     NSDictionary *appFields = [self generateAppFields];
     NSMutableDictionary *header = [@{@"type" : @"meta", @"af" : appFields} mutableCopy];
-    
+
     header[@"g"] = self.deviceInfo.deviceId;
     header[@"tk"] = self.config.accountToken;
     header[@"id"] = self.config.accountId;
-    
+
     header[@"ddnd"] = @([self getStoredDeviceToken].length <= 0);
-    
+
     header[@"frs"] = @(_firstRequestInSession);
     _firstRequestInSession = NO;
-    
+
     int lastTS = [self getLastRequestTimeStamp];
     header[@"l_ts"] = @(lastTS);
-    
+
     int firstTS = [self getFirstRequestTimestamp];
     header[@"f_ts"] = @(firstTS);
-    
+
     NSArray *registeredURLSchemes = _plistInfo.registeredUrlSchemes;
     if (registeredURLSchemes && [registeredURLSchemes count] > 0) {
         header[@"regURLs"] = registeredURLSchemes;
     }
-    
+
     @try {
         NSDictionary *arp = [self getARP];
         if (arp && [arp count] > 0) {
@@ -1040,7 +1040,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     } @catch (NSException *ex) {
         CleverTapLogInternal(self.config.logLevel, @"%@: Failed to attach ARP to batch header", self);
     }
-    
+
     @try {
         NSMutableDictionary *ref = [NSMutableDictionary new];
         if (self.source != nil) {
@@ -1055,16 +1055,16 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         if ([ref count] > 0) {
             header[@"ref"] = ref;
         }
-        
+
     } @catch (NSException *ex) {
         CleverTapLogInternal(self.config.logLevel, @"%@: Failed to attach ref to batch header", self);
     }
-    
+
     @try {
         if (self.wzrkParams != nil && [self.wzrkParams count] > 0) {
             header[@"wzrk_ref"] = self.wzrkParams;
         }
-        
+
     } @catch (NSException *ex) {
         CleverTapLogInternal(self.config.logLevel, @"%@: Failed to attach wzrk_ref to batch header", self);
     }
@@ -1087,29 +1087,29 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (NSDictionary *)generateAppFields {
     NSMutableDictionary *evtData = [NSMutableDictionary new];
-    
+
     evtData[@"Version"] = self.deviceInfo.appVersion;
-    
+
     evtData[@"Build"] = self.deviceInfo.appBuild;
-    
+
     evtData[@"SDK Version"] = self.deviceInfo.sdkVersion;
-    
+
     if (self.deviceInfo.model) {
         evtData[@"Model"] = self.deviceInfo.model;
     }
-    
+
     if (CLLocationCoordinate2DIsValid(self.userSetLocation)) {
         evtData[@"Latitude"] = @(self.userSetLocation.latitude);
         evtData[@"Longitude"] = @(self.userSetLocation.longitude);
     }
-    
+
     evtData[@"Make"] = self.deviceInfo.manufacturer;
     evtData[@"OS Version"] = self.deviceInfo.osVersion;
-    
+
     if (self.deviceInfo.carrier) {
         evtData[@"Carrier"] = self.deviceInfo.carrier;
     }
-    
+
     evtData[@"useIP"] = @(self.enableNetworkInfoReporting);
     if (self.enableNetworkInfoReporting) {
         if (self.deviceInfo.radio != nil) {
@@ -1117,25 +1117,18 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         }
         evtData[@"wifi"] = @(self.deviceInfo.wifi);
     }
-    
-    if (self.deviceInfo.advertisingIdentitier) {
-        evtData[@"ifaA"] = @YES;
-        evtData[@"ifaL"] = self.deviceInfo.advertisingTrackingEnabled ? @NO : @YES;
-        NSString *ifaString = [self deviceIsMultiUser] ?  [NSString stringWithFormat:@"%@%@", kMultiUserPrefix, @"ifa"] : @"ifa";
-        evtData[ifaString] = self.deviceInfo.advertisingIdentitier;
-    } else {
-        evtData[@"ifaA"] = @NO;
-    }
-    
+
+    evtData[@"ifaA"] = @NO;
+
     if (self.deviceInfo.vendorIdentifier) {
         NSString *ifvString = [self deviceIsMultiUser] ?  [NSString stringWithFormat:@"%@%@", kMultiUserPrefix, @"ifv"] : @"ifv";
         evtData[ifvString] = self.deviceInfo.vendorIdentifier;
     }
-    
+
     if ([[self class] runningInsideAppExtension]) {
         evtData[@"appex"] = @1;
     }
-    
+
     evtData[@"OS"] = self.deviceInfo.osName;
     evtData[@"wdt"] = self.deviceInfo.deviceWidth;
     evtData[@"hgt"] = self.deviceInfo.deviceHeight;
@@ -1143,7 +1136,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     if (cc != nil && ![cc isEqualToString:@""]) {
         evtData[@"cc"] = cc;
     }
-    
+
     if (self.deviceInfo.library) {
         evtData[@"lib"] = self.deviceInfo.library;
     }
@@ -1296,7 +1289,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     CleverTapLogInternal(self.config.logLevel, @"%@: appEnteredForeground with options: %@", self, launchOptions);
     if ([[self class] runningInsideAppExtension]) return;
     [self _appEnteredForeground];
-    
+
 #if !defined(CLEVERTAP_TVOS)
     // check for a launching push and handle
     if (isAutoIntegrated) {
@@ -1325,7 +1318,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: app is in foreground", self);
     }
     self.isAppForeground = YES;
-    
+
 #if !CLEVERTAP_NO_INAPP_SUPPORT
     if (!_config.analyticsOnly && ![[self class] runningInsideAppExtension]) {
         [self.inAppFCManager checkUpdateDailyLimits];
@@ -1345,25 +1338,25 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)recordAppLaunched:(NSString *)caller {
     if ([[self class] runningInsideAppExtension]) return;
-    
+
     if (self.appLaunchProcessed) {
         CleverTapLogInternal(self.config.logLevel, @"%@: App Launched already processed", self);
         return;
     }
-    
+
     self.appLaunchProcessed = YES;
-    
+
     if (self.config.disableAppLaunchedEvent) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Dropping App Launched event - reporting disabled in instance configuration", self);
         return;
     }
-    
+
     CleverTapLogInternal(self.config.logLevel, @"%@: recording App Launched event from: %@", self, caller);
-    
+
     NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
     event[@"evtName"] = CLTAP_APP_LAUNCHED_EVENT;
     event[@"evtData"] = [self generateAppFields];
-    
+
     if (self.lastUTMFields) {
         [event addEntriesFromDictionary:self.lastUTMFields];
     }
@@ -1402,7 +1395,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     NSDate *d = [NSDate date];
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
     [dateFormatter setDateFormat:@"d"];
-    
+
     if ([CTPreferences getIntForKey:[self storageKeyWithSuffix:CLTAP_PREFS_LAST_DAILY_PUSHED_EVENTS_DATE] withResetValue:0] != [[dateFormatter stringFromDate:d] intValue]) {
         CleverTapLogInternal(self.config.logLevel, @"%@: queuing daily events", self);
         [self _pushBaseProfile];
@@ -1457,9 +1450,9 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)_handlePushNotification:(id)object openDeepLinksInForeground:(BOOL)openInForeground {
     if ([[self class] runningInsideAppExtension]) return;
-    
+
     if (!object) return;
-    
+
 #if !defined(CLEVERTAP_TVOS)
     // normalize the notification data
     NSDictionary *notification;
@@ -1468,11 +1461,11 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     } else if ([object isKindOfClass:[NSDictionary class]]) {
         notification = object;
     }
-    
+
     if (!notification || [notification count] <= 0) return;
-    
+
     // make sure its our notification before processing
-    
+
     BOOL shouldHandlePush = [self _isCTPushNotification:notification];
     if (!shouldHandlePush) {
         CleverTapLogDebug(self.config.logLevel, @"%@: push notification not from CleverTap, not processing: %@", self, notification);
@@ -1483,7 +1476,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: instance is analyticsOnly, not processing push notification %@", self, notification);
         return;
     }
-    
+
     // this is push generated for this instance of the SDK
     NSString *accountId = (NSString *) notification[@"wzrk_acct_id"];
     // if there is no accountId then only process if its the default instance
@@ -1492,26 +1485,26 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: push notification not targeted as this instance, not processing %@", self, notification);
         return;
     }
-    
+
     CleverTapLogDebug(self.config.logLevel, @"%@: handling push notification: %@", self, notification);
-    
+
     // check to see whether the push includes a test in-app notification, if so don't process further
     if ([self didHandleInAppTestFromPushNotificaton:notification]) return;
-    
+
     // check to see whether the push includes a test inbox message, if so don't process further
     if ([self didHandleInboxMessageTestFromPushNotificaton:notification]) return;
-    
+
     // check to see whether the push includes a test display unit, if so don't process further
     if ([self didHandleDisplayUnitTestFromPushNotificaton:notification]) return;
-    
+
     // notify application with push notification custom extras
     [self _notifyPushNotificationTapped:notification];
-    
+
     // determine application state
     UIApplication *application = [[self class] getSharedApplication];
     if (application != nil) {
         BOOL inForeground = !(application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground);
-        
+
         // should we open a deep link ?
         // if the app is in foreground and force flag is off, then don't fire any deep link
         if (inForeground && !openInForeground) {
@@ -1519,7 +1512,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         } else {
             [self _checkAndFireDeepLinkForNotification:notification];
         }
-        
+
         [self runSerialAsync:^{
             [CTEventBuilder buildPushNotificationEvent:YES forNotification:notification completionHandler:^(NSDictionary *event, NSArray<CTValidationResult*>*errors) {
                 if (event) {
@@ -1619,7 +1612,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     } @catch (NSException *e) {
         // no-op
     }
-    
+
     return isOurs;
 }
 
@@ -1631,19 +1624,19 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     if ([[self class] runningInsideAppExtension]) {
         return NO;
     }
-    
+
     if (!notification || [notification count] <= 0 || !notification[@"wzrk_inapp"]) return NO;
-    
+
     @try {
         [self.inAppFCManager resetSession];
         CleverTapLogDebug(self.config.logLevel, @"%@: Received in-app notification from push payload: %@", self, notification);
-        
+
         NSString *jsonString = notification[@"wzrk_inapp"];
-        
+
         NSDictionary *inapp = [NSJSONSerialization JSONObjectWithData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]
                                                               options:0
                                                                 error:nil];
-        
+
         if (inapp) {
             float delay = self.isAppForeground ? 0.5 : 2.0;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -1657,12 +1650,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             CleverTapLogDebug(self.config.logLevel, @"%@: Failed to parse the inapp notification as JSON", self);
             return YES;
         }
-        
+
     } @catch (NSException *e) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Failed to display the inapp notifcation from payload: %@", self, e.debugDescription);
         return YES;
     }
-    
+
 #endif
     return YES;
 }
@@ -1709,7 +1702,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)_showNotificationIfAvailable {
     if ([[self class] runningInsideAppExtension]) return;
-    
+
     @try {
         NSMutableArray *inapps = [[NSMutableArray alloc] initWithArray:[CTPreferences getObjectForKey:[self storageKeyWithSuffix:CLTAP_PREFS_INAPP_KEY]]];
         if ([inapps count] < 1) {
@@ -1728,7 +1721,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: Application is not in the foreground, won't prepare in-app: %@", self, jsonObj);
         return;
     }
-    
+
     [self runOnNotificationQueue:^{
         CleverTapLogInternal(self.config.logLevel, @"%@: processing inapp notification: %@", self, jsonObj);
         __block CTInAppNotification *notification = [[CTInAppNotification alloc] initWithJSON:jsonObj];
@@ -1755,7 +1748,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: unable to process inapp notification: %@, error: %@ ", self, notification.jsonDescription, notification.error);
         return;
     }
-    
+
     CleverTapLogInternal(self.config.logLevel, @"%@: InApp prepared for display: %@", self, notification.campaignId);
     [self displayNotification:notification];
 }
@@ -1768,33 +1761,33 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         }];
         return;
     }
-    
+
     if (!self.isAppForeground) {
         CleverTapLogInternal(self.config.logLevel, @"%@: Application is not in the foreground, not displaying in-app: %@", self, notification.jsonDescription);
         return;
     }
-    
+
     if (![self.inAppFCManager canShow:notification]) {
         CleverTapLogInternal(self.config.logLevel, @"%@: InApp %@ has been rejected by FC, not showing", self, notification.campaignId);
         [self showInAppNotificationIfAny];  // auto try the next one
         return;
     }
-    
+
     BOOL goFromDelegate = YES;
     if (self.inAppNotificationDelegate && [self.inAppNotificationDelegate respondsToSelector:@selector(shouldShowInAppNotificationWithExtras:)]) {
         goFromDelegate = [self.inAppNotificationDelegate shouldShowInAppNotificationWithExtras:notification.customExtras];
     }
-    
+
     if (!goFromDelegate) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Application has decided to not show this InApp: %@", self, notification.campaignId ? notification.campaignId : @"<unknown ID>");
         [self showInAppNotificationIfAny];  // auto try the next one
         return;
     }
-    
+
     CTInAppDisplayViewController *controller;
     NSString *errorString = nil;
     CleverTapJSInterface *jsInterface = nil;
-    
+
     switch (notification.inAppType) {
         case CTInAppTypeHTML:
             jsInterface = [[CleverTapJSInterface alloc] initWithConfig:self.config];
@@ -1861,7 +1854,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)recordInAppNotificationStateEvent:(BOOL)clicked
                           forNotification:(CTInAppNotification *)notification andQueryParameters:(NSDictionary *)params {
-    
+
     [self runSerialAsync:^{
         [CTEventBuilder buildInAppNotificationStateEvent:clicked forNotification:notification andQueryParameters:params completionHandler:^(NSDictionary *event, NSArray<CTValidationResult*>*errors) {
             if (event) {
@@ -1909,7 +1902,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogDebug(self.config.logLevel, @"%@: InApp: button tapped with custom extras: %@", self, buttonCustomExtras);
         [self notifyNotificationButtonTappedWithCustomExtras:buttonCustomExtras];
     } else if (ctaURL) {
-        
+
 #if !CLEVERTAP_NO_INAPP_SUPPORT
         __block id dlURL;
         [[self class] runSyncMainQueue:^{
@@ -1997,36 +1990,36 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)processAdditionalRequestParameters:(NSDictionary *)response {
     if (!response) return;
-    
+
     NSNumber *i = response[@"_i"];
     if (i != nil) {
         [self saveI:i];
     }
-    
+
     NSNumber *j = response[@"_j"];
     if (j != nil) {
         [self saveJ:j];
     }
-    
+
     NSDictionary *arp = response[@"arp"];
     if (!arp || [arp count] < 1) return;
-    
+
     [self updateARP:arp];
 }
 
 - (void)processDiscardedEventsRequest:(NSDictionary *)arp {
     if (!arp) return;
-    
+
     if (!arp[CLTAP_DISCARDED_EVENT_JSON_KEY]) {
         CleverTapLogInternal(self.config.logLevel, @"%@: ARP doesn't contain the Discarded Events key.", self);
         return;
     }
-    
+
     if (![arp[CLTAP_DISCARDED_EVENT_JSON_KEY] isKindOfClass:[NSArray class]]) {
         CleverTapLogInternal(self.config.logLevel, @"%@: Error parsing discarded events: %@", self, arp);
         return;
     }
-    
+
     NSArray *discardedEvents = arp[CLTAP_DISCARDED_EVENT_JSON_KEY];
     if (discardedEvents && discardedEvents.count > 0) {
         @try {
@@ -2071,7 +2064,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         update = [[NSMutableDictionary alloc] init];
     }
     [update addEntriesFromDictionary:arp];
-    
+
     // Remove any keys that have the value -1
     NSArray *keys = [update allKeys];
     for (NSUInteger i = 0; i < [keys count]; i++) {
@@ -2094,7 +2087,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     }
     NSString *key = [NSString stringWithFormat:@"arp:%@", accountId];
     NSDictionary *arp = [CTPreferences getObjectForKey:key];
-    
+
     //Set ARP value in new key and delete the value for old key
     if (arp != nil) {
         [self saveARP:arp];
@@ -2305,30 +2298,30 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 #pragma mark - Queues/Persistence/Dispatch Handling
 
 - (BOOL)shouldDeferProcessingEvent: (NSDictionary *)event withType:(CleverTapEventType)type {
-    
+
     if (self.config.isCreatedPostAppLaunched){
         return NO;
     }
-    
+
     return (type == CleverTapEventTypeRaised && !self.appLaunchProcessed);
 }
 
 - (BOOL)_shouldDropEvent:(NSDictionary *)event withType:(CleverTapEventType)type {
-    
+
     if (type == CleverTapEventTypeFetch) {
         return NO;
     }
-    
+
     if (self.currentUserOptedOut) {
         CleverTapLogDebug(self.config.logLevel, @"%@: User: %@ has opted out of sending events, dropping event: %@", self, self.deviceInfo.deviceId, event);
         return YES;
     }
-    
+
     if ([self isMuted]) {
         CleverTapLogDebug(self.config.logLevel, @"%@: is muted, dropping event: %@", self, event);
         return YES;
     }
-    
+
     return NO;
 }
 
@@ -2336,7 +2329,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     if ([self _shouldDropEvent:event withType:type]) {
         return;
     }
-    
+
     // make sure App Launched is processed first
     // if not defer this one; push back on the queue
     if ([self shouldDeferProcessingEvent:event withType:type]) {
@@ -2348,7 +2341,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         });
         return;
     }
-    
+
     if (type == CleverTapEventTypeFetch) {
         [self runSerialAsync:^{
             [self processEvent:event withType:type];
@@ -2371,22 +2364,22 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             return;
         }
         NSMutableDictionary *mutableEvent = [NSMutableDictionary dictionaryWithDictionary:event];
-        
+
         if (!self.config.accountId || !self.config.accountToken) {
             CleverTapLogInternal(self.config.logLevel, @"%@: Account ID/token not found, will not add to queue", self);
             return;
         }
-        
+
         // ignore pings if queue is not draining
         if ([self.eventsQueue count] >= 50 && (eventType == CleverTapEventTypePing || eventType == CleverTapEventTypeFetch)) {
             CleverTapLogInternal(self.config.logLevel, @"%@: Events queue not draining, ignoring ping and fetch events", self);
             return;
         }
-        
+
         if (eventType != CleverTapEventTypeRaised || eventType != CleverTapEventTypeNotificationViewed) {
             event = [self convertDataToPrimitive:event];
         }
-        
+
         NSString *type;
         if (eventType == CleverTapEventTypePage) {
             type = @"page";
@@ -2417,21 +2410,21 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         mutableEvent[@"lsl"] = @(self.lastSessionLengthSeconds);
         mutableEvent[@"f"] = @(self.firstSession);
         mutableEvent[@"n"] = self.currentViewControllerName ? self.currentViewControllerName : @"_bg";
-        
+
         // Report any pending validation error
         CTValidationResult *vr = [self popValidationResult];
         if (vr != nil) {
             mutableEvent[CLTAP_ERROR_KEY] = [self getErrorObject:vr];
         }
-        
+
         if (self.config.enablePersonalization) {
             [self.localDataStore addDataSyncFlag:mutableEvent];
         }
-        
+
         if (eventType == CleverTapEventTypeRaised || eventType == CleverTapEventTypeNotificationViewed) {
             [self.localDataStore persistEvent:mutableEvent];
         }
-        
+
         if (eventType == CleverTapEventTypeProfile) {
             [self.profileQueue addObject:mutableEvent];
             if ([self.profileQueue count] > 500) {
@@ -2448,15 +2441,15 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [self.eventsQueue removeObjectAtIndex:0];
             }
         }
-        
+
         CleverTapLogDebug(self.config.logLevel, @"%@: New event processed: %@", self, [self jsonObjectToString:mutableEvent]);
-        
+
         if (eventType == CleverTapEventTypeFetch) {
             [self flushQueue];
         } else {
             [self scheduleQueueFlush];
         }
-        
+
     } @catch (NSException *e) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Processing event failed with a exception: %@", self, e.debugDescription);
     }
@@ -2640,98 +2633,98 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogInternal(self.config.logLevel, @"%@: is muted won't send queue", self);
         return;
     }
-    
+
     NSString *endpoint = [self endpointForQueue:queue];
-    
+
     if (endpoint == nil) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Endpoint is not set, will not start sending queue", self);
         return;
     }
-    
+
     NSDictionary *header = [self batchHeader];
-    
+
     int originalCount = (int) [queue count];
     float numBatches = (float) ceil((float) originalCount / kMaxBatchSize);
     CleverTapLogDebug(self.config.logLevel, @"%@: Pending events to be sent: %d in %d batches", self, originalCount, (int) numBatches);
-    
+
     while ([queue count] > 0) {
         NSUInteger batchSize = ([queue count] > kMaxBatchSize) ? kMaxBatchSize : [queue count];
         NSArray *batch = [queue subarrayWithRange:NSMakeRange(0, batchSize)];
         NSArray *batchWithHeader = [self insertHeader:header inBatch:batch];
-        
+
         CleverTapLogInternal(self.config.logLevel, @"%@: Pending events batch contains: %d items", self, (int) [batch count]);
-        
+
         @try {
             NSString *jsonBody = [self jsonObjectToString:batchWithHeader];
-            
+
             CleverTapLogDebug(self.config.logLevel, @"%@: Sending %@ to CleverTap servers at %@", self, jsonBody, endpoint);
-            
+
             // update endpoint for current timestamp
             endpoint = [self endpointForQueue:queue];
             if (endpoint == nil) {
                 CleverTapLogInternal(self.config.logLevel, @"%@: Endpoint is not set, won't send queue", self);
                 return;
             }
-            
+
             NSMutableURLRequest *request = [self createURLRequestFromURL:[[NSURL alloc] initWithString:endpoint]];
             request.HTTPBody = [jsonBody dataUsingEncoding:NSUTF8StringEncoding];
             request.HTTPMethod = @"POST";
-            
+
             __block BOOL success = NO;
             __block NSData *responseData;
-            
+
             __block BOOL redirect = NO;
-            
+
             // Need to simulate a synchronous request
             dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
             NSURLSessionDataTask *postDataTask = [self.urlSession
                                                   dataTaskWithRequest:request
                                                   completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
                 responseData = data;
-                
+
                 if (error) {
                     CleverTapLogDebug(self.config.logLevel, @"%@: Network error while sending queue, will retry: %@", self, error.localizedDescription);
                 }
-                
+
                 if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
                     NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-                    
+
                     success = (httpResponse.statusCode == 200);
-                    
+
                     if (success) {
                         if (queue == self->_notificationsQueue) {
                             redirect = [self updateStateFromResponseHeadersShouldRedirectForNotif: httpResponse.allHeaderFields];
                         } else {
                             redirect = [self updateStateFromResponseHeadersShouldRedirect: httpResponse.allHeaderFields];
                         }
-                        
+
                     } else {
                         CleverTapLogDebug(self.config.logLevel, @"%@: Got %lu response when sending queue, will retry", self, (long)httpResponse.statusCode);
                     }
                 }
-                
+
                 dispatch_semaphore_signal(semaphore);
             }];
             [postDataTask resume];
             dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-            
+
             if (!success) {
                 [self scheduleQueueFlush];
                 [self handleSendQueueFail];
             }
-            
+
             if (!success || redirect) {
                 // error so return without removing events from the queue or parsing the response
                 // Note: in an APP Extension we don't persist any unsent queues
                 return;
             }
-            
+
             [queue removeObjectsInArray:batch];
-            
+
             [self parseResponse:responseData];
-            
+
             CleverTapLogDebug(self.config.logLevel,@"%@: Successfully sent %lu events", self, (unsigned long)[batch count]);
-            
+
         } @catch (NSException *e) {
             CleverTapLogDebug(self.config.logLevel, @"%@: An error occurred while sending the queue: %@", self, e.debugDescription);
             break;
@@ -2747,15 +2740,15 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         @try {
             id jsonResp = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:nil];
             CleverTapLogInternal(self.config.logLevel, @"%@: Response: %@", self, jsonResp);
-            
+
             if (jsonResp && [jsonResp isKindOfClass:[NSDictionary class]]) {
                 NSString *upstreamGUID = [jsonResp objectForKey:@"g"];
-                
+
                 if (upstreamGUID && ![upstreamGUID isEqualToString:@""]) {
                     [self.deviceInfo forceUpdateDeviceID:upstreamGUID];
                     CleverTapLogInternal(self.config.logLevel, @"%@: Upstream updated the GUID to %@", self, upstreamGUID);
                 }
-                
+
 #if !CLEVERTAP_NO_INAPP_SUPPORT
                 if (!self.config.analyticsOnly && ![[self class] runningInsideAppExtension]) {
                     NSNumber *perSession = jsonResp[@"imc"];
@@ -2767,7 +2760,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                         perDay = @10;
                     }
                     [self.inAppFCManager updateLimitsPerDay:perDay.intValue andPerSession:perSession.intValue];
-                    
+
                     NSArray *inappsJSON = jsonResp[CLTAP_INAPP_JSON_RESPONSE_KEY];
                     if (inappsJSON) {
                         NSMutableArray *inappNotifs;
@@ -2776,7 +2769,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                         } @catch (NSException *e) {
                             CleverTapLogInternal(self.config.logLevel, @"%@: Error parsing InApps JSON: %@", self, e.debugDescription);
                         }
-                        
+
                         // Add all the new notifications to the queue
                         if (inappNotifs && [inappNotifs count] > 0) {
                             CleverTapLogInternal(self.config.logLevel, @"%@: Processing new InApps: %@", self, inappNotifs);
@@ -2792,7 +2785,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                                 }
                                 // Commit all the changes
                                 [CTPreferences putObject:inapps forKey:[self storageKeyWithSuffix:CLTAP_PREFS_INAPP_KEY]];
-                                
+
                                 // Fire the first notification, if any
                                 [self runOnNotificationQueue:^{
                                     [self _showNotificationIfAvailable];
@@ -2810,7 +2803,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                     }
                 }
 #endif
-                
+
 #if !CLEVERTAP_NO_INBOX_SUPPORT
                 NSArray *inboxJSON = jsonResp[CLTAP_INBOX_MSG_JSON_RESPONSE_KEY];
                 if (inboxJSON) {
@@ -2832,7 +2825,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                     }
                 }
 #endif
-                
+
 #if !CLEVERTAP_NO_AB_SUPPORT
                 if (!self.config.analyticsOnly && ![[self class] runningInsideAppExtension]) {
                     NSArray *experimentsJSON = jsonResp[CLTAP_AB_EXP_JSON_RESPONSE_KEY];
@@ -2849,7 +2842,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                     }
                 }
 #endif
-                
+
 #if !CLEVERTAP_NO_DISPLAY_UNIT_SUPPORT
                 NSArray *displayUnitJSON = jsonResp[CLTAP_DISPLAY_UNIT_JSON_RESPONSE_KEY];
                 if (displayUnitJSON) {
@@ -2882,7 +2875,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                         [self.featureFlagsController updateFeatureFlags:featureFlags];
                     }
                 }
-                
+
                 NSDictionary *productConfigJSON = jsonResp[CLTAP_PRODUCT_CONFIG_JSON_RESPONSE_KEY];
                 if (productConfigJSON) {
                     NSMutableArray *productConfigNotifs;
@@ -2898,7 +2891,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                         [self.productConfig updateProductConfigWithLastFetchTs:(long) [lastFetchTs longLongValue]];
                     }
                 }
-                
+
                 // Handle events/profiles sync data
                 @try {
                     NSDictionary *evpr = jsonResp[@"evpr"];
@@ -2914,7 +2907,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 } @catch (NSException *e) {
                     CleverTapLogInternal(self.config.logLevel, @"%@: Failed to process profile data updates: %@", self, e.debugDescription);
                 }
-                
+
                 // Handle console
                 @try {
                     NSArray *consoleMessages = jsonResp[@"console"];
@@ -2926,14 +2919,14 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 } @catch (NSException *ex) {
                     // no-op
                 }
-                
+
                 // Handle arp
                 @try {
                     [self processAdditionalRequestParameters:jsonResp];
                 } @catch (NSException *ex) {
                     CleverTapLogInternal(self.config.logLevel, @"%@: Failed to handle ARP update: %@", self, ex.debugDescription)
                 }
-                
+
                 // Handle dbg_lvl
                 @try {
                     if (jsonResp[@"dbg_lvl"] && [jsonResp[@"dbg_lvl"] isKindOfClass:[NSNumber class]]) {
@@ -2943,14 +2936,14 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 } @catch (NSException *ex) {
                     CleverTapLogInternal(self.config.logLevel, @"%@: Failed to set debug level: %@", self, ex.debugDescription);
                 }
-                
+
                 // good time to make sure we have persisted the local profile if needed
                 [self.localDataStore persistLocalProfileIfRequired];
-                
+
                 CleverTapLogInternal(self.config.logLevel, @"%@: parseResponse completed successfully", self);
-                
+
                 [self handleSendQueueSuccess];
-                
+
             } else {
                 CleverTapLogInternal(self.config.logLevel, @"%@: either the JSON response was nil or it wasn't of type NSDictionary", self);
                 [self handleSendQueueFail];
@@ -3030,7 +3023,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (NSString *)getGUIDforKey:(NSString *)key andIdentifier:(NSString *)identifier {
     if (!key || !identifier) return nil;
-    
+
     NSDictionary *cache = [self getCachedGUIDs];
     NSString *cacheKey = [NSString stringWithFormat:@"%@_%@", key, identifier];
     if (!cache) return nil;
@@ -3040,7 +3033,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 - (void)cacheGUID:(NSString *)guid forKey:(NSString *)key andIdentifier:(NSString *)identifier {
     if (!guid) guid = [self profileGetCleverTapID];
     if (!guid || [self.deviceInfo isErrorDeviceID] || !key || !identifier) return;
-    
+
     NSDictionary *cache = [self getCachedGUIDs];
     if (!cache) cache = @{};
     NSMutableDictionary *newCache = [NSMutableDictionary dictionaryWithDictionary:cache];
@@ -3061,14 +3054,14 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)_onUserLogin:(NSDictionary *)properties withCleverTapID:(NSString *)cleverTapID {
     if (!properties) return;
-    
+
     NSString *currentGUID = [self profileGetCleverTapID];
-    
+
     if (!currentGUID) return;
-    
+
     NSString *cachedGUID;
     BOOL haveIdentifier = NO;
-    
+
     // check for valid identifier keys
     // use the first one we find
     for (NSString *key in properties) {
@@ -3085,7 +3078,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             // no-op
         }
     }
-    
+
     // if no identifier provided or there are no identified users on the device; just push on the current profile
     if (![self.deviceInfo isErrorDeviceID]) {
         if (!haveIdentifier || [self isAnonymousDevice]) {
@@ -3102,41 +3095,41 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     }
     // stringify the profile dict to use as a concurrent dupe key
     NSString *profileToString = [CTUtils dictionaryToJsonString:properties];
-    
+
     // as processing happens async block concurrent onUserLogin requests with the same profile, as our cache is set async
     if ([self isProcessingLoginUserWithIdentifier:profileToString]) {
         CleverTapLogInternal(self.config.logLevel, @"Already processing onUserLogin, will not process for profile: %@", properties);
         return;
     }
-    
+
     // prevent dupes
     self.processingLoginUserIdentifier = profileToString;
-    
+
     [self _asyncSwitchUser:properties withCachedGuid:cachedGUID andCleverTapID:cleverTapID forAction:kOnUserLoginAction];
 }
 
 - (void) _asyncSwitchUser:(NSDictionary *)properties withCachedGuid:(NSString *)cachedGUID andCleverTapID:(NSString *)cleverTapID forAction:(NSString*)action  {
-    
+
     [self runSerialAsync:^{
         CleverTapLogDebug(self.config.logLevel, @"%@: async switching user with properties:  %@", action, properties);
-        
+
         // set OptOut to false for the old user
         self.currentUserOptedOut = NO;
-        
+
         // unregister the push token on the current user
         [self pushDeviceTokenWithAction:CleverTapPushTokenUnregister];
-        
+
         // clear any events in the queue
         [self clearQueue];
-        
+
         // clear ARP and other context for the old user
         [self clearUserContext];
-        
+
         // clear old profile data
         [self.localDataStore changeUser];
-        
+
         [self resetSession];
-        
+
         if (cachedGUID) {
             [self.deviceInfo forceUpdateDeviceID:cachedGUID];
         } else if (self.config.useCustomCleverTapId){
@@ -3144,33 +3137,33 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         } else {
             [self.deviceInfo forceNewDeviceID];
         }
-        
+
         [self recordDeviceErrors];
-        
+
 #if !CLEVERTAP_NO_INAPP_SUPPORT
         if (![[self class] runningInsideAppExtension]) {
             [self.inAppFCManager changeUserWithGuid: self.deviceInfo.deviceId];
         }
 #endif
-        
+
         [self _setCurrentUserOptOutStateFromStorage];  // be sure to do this AFTER updating the GUID
-        
+
 #if !CLEVERTAP_NO_INBOX_SUPPORT
         [self _resetInbox];
 #endif
-        
+
 #if !CLEVERTAP_NO_AB_SUPPORT
         [self _resetABTesting];
 #endif
-        
+
 #if !CLEVERTAP_NO_DISPLAY_UNIT_SUPPORT
         [self _resetDisplayUnit];
 #endif
-        
+
         [self _resetFeatureFlags];
-        
+
         [self _resetProductConfig];
-        
+
         // push data on reset profile
         [self recordAppLaunched:action];
         if (properties) {
@@ -3319,7 +3312,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [profile addEntriesFromDictionary:customFields];
             }
             [self cacheGUIDSforProfile:profile];
-            
+
 #if !defined(CLEVERTAP_TVOS)
             // make sure Phone is a string and debug check for country code and phone format, but always send
             NSArray *profileAllKeys = [profile allKeys];
@@ -3347,7 +3340,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
             event[@"profile"] = profile;
             [self queueEvent:event withType:CleverTapEventTypeProfile];
-            
+
             if (errors) {
                 [self pushValidationResults:errors];
             }
@@ -3368,11 +3361,11 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [profile addEntriesFromDictionary:customFields];
             }
             [self cacheGUIDSforProfile:profile];
-            
+
             NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
             event[@"profile"] = profile;
             [self queueEvent:event withType:CleverTapEventTypeProfile];
-            
+
             if (errors) {
                 [self pushValidationResults:errors];
             }
@@ -3393,11 +3386,11 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 [profile addEntriesFromDictionary:customFields];
             }
             [self cacheGUIDSforProfile:profile];
-            
+
             NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
             event[@"profile"] = profile;
             [self queueEvent:event withType:CleverTapEventTypeProfile];
-            
+
             if (errors) {
                 [self pushValidationResults:errors];
             }
@@ -3421,7 +3414,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                 CleverTapLogInternal(self.config.logLevel, @"%@: removing key %@ from profile", self, _key);
                 [self.localDataStore removeProfileFieldForKey:_key];
                 [profile addEntriesFromDictionary:customFields];
-                
+
                 NSMutableDictionary *event = [[NSMutableDictionary alloc] init];
                 event[@"profile"] = profile;
                 [self queueEvent:event withType:CleverTapEventTypeProfile];
@@ -3470,7 +3463,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         NSString* _key = [customFields allKeys][0];
         CleverTapLogInternal(self.config.logLevel, @"Created multi-value profile push: %@", customFields);
         [profile addEntriesFromDictionary:customFields];
-        
+
         if (updatedMultiValue && [updatedMultiValue count] > 0) {
             [self.localDataStore setProfileFieldWithKey:_key andValue:updatedMultiValue];
         } else {
@@ -3538,7 +3531,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 - (void)recordErrorWithMessage:(NSString *)message andErrorCode:(int)code {
     [self runSerialAsync:^{
         NSString *currentVCName = self.currentViewControllerName ? self.currentViewControllerName : @"Unknown";
-        
+
         [self recordEvent:@"Error Occurred" withProps:@{
             @"Error Message" : message,
             @"Error Code" : @(code),
@@ -3567,7 +3560,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     }
     self.currentViewControllerName = screenName;
     self.screenCount++;
-    
+
     [self recordPageEventWithExtras:nil];
 }
 
@@ -3618,7 +3611,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 }
 
 - (NSTimeInterval)eventGetFirstTime:(NSString *)event {
-    
+
     if (!self.config.enablePersonalization) {
         return -1;
     }
@@ -3626,7 +3619,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 }
 
 - (NSTimeInterval)eventGetLastTime:(NSString *)event {
-    
+
     if (!self.config.enablePersonalization) {
         return -1;
     }
@@ -3634,7 +3627,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 }
 
 - (int)eventGetOccurrences:(NSString *)event {
-    
+
     if (!self.config.enablePersonalization) {
         return -1;
     }
@@ -3642,7 +3635,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 }
 
 - (NSDictionary *)userGetEventHistory {
-    
+
     if (!self.config.enablePersonalization) {
         return nil;
     }
@@ -3650,7 +3643,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 }
 
 - (CleverTapEventDetail *)eventGetDetail:(NSString *)event {
-    
+
     if (!self.config.enablePersonalization) {
         return nil;
     }
@@ -3766,7 +3759,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         return;
     }
     if (!source && !medium && !campaign) return;
-    
+
     @synchronized (self) {
         long installStatus = 0;
         if (self.config.isDefaultInstance) {
@@ -3784,13 +3777,13 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         if (source) source = [CTUtils urlEncodeString:source];
         if (medium) medium = [CTUtils urlEncodeString:medium];
         if (campaign) campaign = [CTUtils urlEncodeString:campaign];
-        
+
         NSString *uriStr = @"wzrk://track?install=true";
-        
+
         if (source) uriStr = [uriStr stringByAppendingFormat:@"&utm_source=%@", source];
         if (medium) uriStr = [uriStr stringByAppendingFormat:@"&utm_medium=%@", medium];
         if (campaign) uriStr = [uriStr stringByAppendingFormat:@"&utm_campaign=%@", campaign];
-        
+
         [self _pushDeepLink:uriStr withSourceApp:nil andInstall:true];
     } @catch (NSException *e) {
         // no-op
@@ -3968,9 +3961,9 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 #if defined(CLEVERTAP_HOST_WATCHOS)
 - (BOOL)handleMessage:(NSDictionary<NSString *, id> *)message forWatchSession:(WCSession *)session  {
     NSString *type = [message objectForKey:@"clevertap_type"];
-    
+
     BOOL handled = (type != nil);
-    
+
     if ([type isEqualToString:@"recordEventWithProps"]) {
         [self recordEvent: message[@"event"] withProps: message[@"props"]];
     }
@@ -4044,7 +4037,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             CleverTapLogDebug(_config.logLevel, @"Error getting inbox message: %@", e.debugDescription);
         }
     };
-    
+
     return all;
 }
 
@@ -4146,7 +4139,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
         CleverTapLogDebug(self.config.logLevel, @"%@ is configured as analytics only, Inbox unavailable", self);
         return NO;
     }
-    
+
     if (!self.inboxController || !self.inboxController.isInitialized) {
         CleverTapLogDebug(_config.logLevel, @"%@: Inbox not initialized.  Did you call initializeInboxWithCallback: ?", self);
         return NO;
@@ -4178,7 +4171,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 - (void)messageDidSelect:(CleverTapInboxMessage *_Nonnull)message atIndex:(int)index withButtonIndex:(int)buttonIndex {
     CleverTapLogDebug(_config.logLevel, @"%@: inbox message clicked: %@", self, message);
     [self recordInboxMessageStateEvent:YES forMessage:message andQueryParameters:nil];
-    
+
     CleverTapInboxMessageContent *content = (CleverTapInboxMessageContent*)message.content[index];
     NSURL *ctaURL;
     // no button index, means use the on message click url if any
@@ -4200,7 +4193,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             }
         }
     }
-    
+
     if (ctaURL && ![ctaURL.absoluteString isEqual: @""]) {
 #if !CLEVERTAP_NO_INBOX_SUPPORT
         __block id dlURL;
@@ -4231,7 +4224,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                     }
                 }
             } else {
-                
+
                 if ([sharedApplication respondsToSelector:@selector(openURL:)]) {
                     [sharedApplication performSelector:@selector(openURL:) withObject:ctaURL];
                 }
@@ -4243,7 +4236,7 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
 
 - (void)recordInboxMessageStateEvent:(BOOL)clicked
                           forMessage:(CleverTapInboxMessage *)message andQueryParameters:(NSDictionary *)params {
-    
+
     [self runSerialAsync:^{
         [CTEventBuilder buildInboxMessageStateEvent:clicked forMessage:message andQueryParameters:params completionHandler:^(NSDictionary *event, NSArray<CTValidationResult*>*errors) {
             if (event) {
@@ -4267,12 +4260,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     if ([[self class] runningInsideAppExtension]) {
         return NO;
     }
-    
+
     if (!notification || [notification count] <= 0 || !notification[@"wzrk_inbox"]) return NO;
-    
+
     @try {
         CleverTapLogDebug(self.config.logLevel, @"%@: Received inbox message from push payload: %@", self, notification);
-        
+
         NSDictionary *msg;
         id data = notification[@"wzrk_inbox"];
         if ([data isKindOfClass:[NSString class]]) {
@@ -4281,32 +4274,32 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
                    JSONObjectWithData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]
                    options:0
                    error:nil];
-            
+
         } else if ([data isKindOfClass:[NSDictionary class]]) {
             msg = (NSDictionary*)data;
         }
-        
+
         if (!msg) {
             CleverTapLogDebug(self.config.logLevel, @"%@: Unable to decode inbox message from push payload: %@", self, notification);
         }
-        
+
         NSDate *now = [NSDate date];
         NSTimeInterval nowEpochSeconds = [now timeIntervalSince1970];
         NSInteger epochTime = nowEpochSeconds;
         NSString *nowEpoch = [NSString stringWithFormat:@"%li", (long)epochTime];
-        
+
         NSDate *expireDate = [now dateByAddingTimeInterval:(24 * 60 * 60)];
         NSTimeInterval expireEpochSeconds = [expireDate timeIntervalSince1970];
         NSUInteger expireTime = (long)expireEpochSeconds;
-        
+
         NSMutableDictionary *message = [NSMutableDictionary dictionary];
         [message setObject:nowEpoch forKey:@"_id"];
         [message setObject:[NSNumber numberWithLong:expireTime] forKey:@"wzrk_ttl"];
         [message addEntriesFromDictionary:msg];
-        
+
         NSMutableArray<NSDictionary*> *inboxMsg = [NSMutableArray new];
         [inboxMsg addObject:message];
-        
+
         if (inboxMsg) {
             float delay = self.isAppForeground ? 0.5 : 2.0;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -4326,12 +4319,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             CleverTapLogDebug(self.config.logLevel, @"%@: Failed to parse the inbox message as JSON", self);
             return YES;
         }
-        
+
     } @catch (NSException *e) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Failed to display the inbox message from payload: %@", self, e.debugDescription);
         return YES;
     }
-    
+
 #endif
     return YES;
 }
@@ -4658,21 +4651,21 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
     if ([[self class] runningInsideAppExtension]) {
         return NO;
     }
-    
+
     if (!notification || [notification count] <= 0 || !notification[@"wzrk_adunit"]) return NO;
-    
+
     @try {
         CleverTapLogDebug(self.config.logLevel, @"%@: Received display unit from push payload: %@", self, notification);
-        
+
         NSString *jsonString = notification[@"wzrk_adunit"];
-        
+
         NSDictionary *displayUnitDict = [NSJSONSerialization JSONObjectWithData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]
                                                                         options:0
                                                                           error:nil];
-        
+
         NSMutableArray<NSDictionary*> *displayUnits = [NSMutableArray new];
         [displayUnits addObject:displayUnitDict];
-        
+
         if (displayUnits && displayUnits.count > 0) {
             float delay = self.isAppForeground ? 0.5 : 2.0;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -4690,12 +4683,12 @@ static NSMutableArray<CTInAppDisplayViewController*> *pendingNotificationControl
             CleverTapLogDebug(self.config.logLevel, @"%@: Failed to parse the display unit as JSON", self);
             return YES;
         }
-        
+
     } @catch (NSException *e) {
         CleverTapLogDebug(self.config.logLevel, @"%@: Failed to initialize the display unit from payload: %@", self, e.debugDescription);
         return YES;
     }
-    
+
 #endif
     return YES;
 }

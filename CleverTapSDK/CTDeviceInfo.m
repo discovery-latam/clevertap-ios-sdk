@@ -27,7 +27,6 @@ NSString* const kCLTAP_ERROR_PROFILE_PREFIX = @"-i";
 
 static NSRecursiveLock *deviceIDLock;
 static NSString *_idfv;
-static NSString *_idfa;
 static NSString *_sdkVersion;
 static NSString *_appVersion;
 static NSString *_bundleId;
@@ -73,7 +72,6 @@ static const char *backgroundQueueLabel = "com.clevertap.deviceInfo.backgroundQu
 + (void)initialize {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        _idfa = [self getIDFA];
         _idfv = [self getIDFV];
         deviceIDLock = [NSRecursiveLock new];
 #if !CLEVERTAP_NO_REACHABILITY_SUPPORT
